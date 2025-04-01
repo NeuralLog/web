@@ -15,8 +15,14 @@
 - Successfully used FlareSolverr's API to access Reddit content, but received a large amount of data
 - Created scripts to help combine Puppeteer with FlareSolverr
 - Successfully navigated to and interacted with alternative websites (example.com and httpbin.org)
+- Created two login scripts for Reddit:
+  - A basic Puppeteer login script (reddit_login.js)
+  - An enhanced script that uses FlareSolverr to bypass Cloudflare (reddit_login_flaresolverr.js)
+- Set up a secure credential storage solution using JSON files
 
 ## Next Steps
-- Create a more direct integration between FlareSolverr and Puppeteer
-- Test the FlareSolverr API with specific Reddit endpoints
-- Consider using a headless browser approach with Puppeteer that leverages FlareSolverr
+- Update the reddit_credentials.json file with actual login information
+- Run the login scripts to test access to Reddit
+- Extend the scripts to perform specific actions once logged in
+- Implement error handling for various login scenarios
+- Create a more comprehensive solution with session persistence

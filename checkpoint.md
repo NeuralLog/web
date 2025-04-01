@@ -7,10 +7,12 @@
 
 ## Current Status
 - Attempted to navigate to Reddit using Puppeteer
-- Encountered a network security block
+- Encountered a network security block (likely Cloudflare protection)
 - Successfully captured a screenshot of the block page
+- Discovered FlareSolverr in the user's directory, which is a tool designed to bypass Cloudflare and similar protections
+- Found the docker-compose.yml for FlareSolverr which shows how to set it up
 
 ## Next Steps
-- Try an alternative approach to bypass the security block
-- Consider using a different website for testing
-- Look into potential solutions like FlareSolverr (detected in user directory)
+- Set up FlareSolverr using Docker Compose
+- Use FlareSolverr as a proxy to navigate to Reddit
+- Alternatively, try a different website that doesn't have such strict security measures

@@ -17,9 +17,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         <UserProvider>
           <AuthProvider
             options={{
-              useTenantSpecificInstances: process.env.NODE_ENV === 'production',
-              storeId: process.env.NEXT_PUBLIC_OPENFGA_STORE_ID,
-              authorizationModelId: process.env.NEXT_PUBLIC_OPENFGA_MODEL_ID
+              apiUrl: process.env.NEXT_PUBLIC_AUTH_SERVICE_API_URL,
+              apiKey: process.env.NEXT_PUBLIC_AUTH_SERVICE_API_KEY,
+              cacheTtl: process.env.NEXT_PUBLIC_AUTH_CACHE_TTL ? parseInt(process.env.NEXT_PUBLIC_AUTH_CACHE_TTL) : undefined
             }}
           >
             {children}

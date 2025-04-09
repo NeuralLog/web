@@ -1,112 +1,47 @@
 /**
  * NeuralLog Auth Client
- * 
+ *
  * This client provides authentication and authorization functionality
- * for the NeuralLog web application. It uses OpenFGA for authorization
+ * for the NeuralLog web application. It uses the auth service API
  * and respects the tenant context from the tenant service.
  */
 
-import { OpenFgaClient } from '@openfga/sdk';
 import { getTenantId, getTenantIdSync } from '@/services/tenantContext';
-
-// Cache for authorization checks
-const authCache = new Map<string, { result: boolean; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
-
-export enum Permission {
-  READ = 'read',
-  WRITE = 'write',
-  ADMIN = 'admin',
-  MEMBER = 'member'
-}
-
-export enum ResourceType {
-  LOG = 'log',
-  TENANT = 'tenant',
-  ORGANIZATION = 'organization',
-  API_KEY = 'api_key',
-  DASHBOARD = 'dashboard',
-  ALERT = 'alert',
-  AGENT = 'agent'
-}
-
-export interface AuthClientOptions {
-  /**
-   * OpenFGA API URL
-   * @default http://localhost:8080 in development, tenant-specific URL in production
-   */
-  apiUrl?: string;
-  
-  /**
-   * Store ID for OpenFGA
-   */
-  storeId?: string;
-  
-  /**
-   * Authorization model ID for OpenFGA
-   */
-  authorizationModelId?: string;
-  
-  /**
-   * Whether to use tenant-specific OpenFGA instances
-   * @default true in production, false in development
-   */
-  useTenantSpecificInstances?: boolean;
-  
-  /**
-   * Tenant namespace format for Kubernetes
-   * @default tenant-{tenantId}
-   */
-  tenantNamespaceFormat?: string;
-  
-  /**
-   * OpenFGA service name in tenant namespace
-   * @default openfga
-   */
-  openfgaServiceName?: string;
-  
-  /**
-   * OpenFGA service port in tenant namespace
-   * @default 8080
-   */
-  openfgaServicePort?: number;
-}
+import { AuthApiClient } from './api-client';
+import { AuthCache } from './cache';
+import { Permission, ResourceType, AuthClientOptions } from './types';
 
 export class AuthClient {
-  private client: OpenFgaClient | null = null;
-  private storeId: string;
-  private authorizationModelId: string;
-  private useTenantSpecificInstances: boolean;
-  private tenantNamespaceFormat: string;
-  private openfgaServiceName: string;
-  private openfgaServicePort: number;
-  private defaultApiUrl: string;
+  private apiClient: AuthApiClient;
+  private cache: AuthCache;
+  private apiUrl: string;
   private currentTenantId: string | null = null;
-  
+  private apiKey: string;
+
   constructor(options: AuthClientOptions = {}) {
-    this.storeId = options.storeId || process.env.OPENFGA_STORE_ID || '';
-    this.authorizationModelId = options.authorizationModelId || process.env.OPENFGA_MODEL_ID || '';
-    
-    // Determine if we should use tenant-specific instances
-    this.useTenantSpecificInstances = options.useTenantSpecificInstances !== undefined
-      ? options.useTenantSpecificInstances
-      : process.env.NODE_ENV === 'production' && process.env.USE_TENANT_SPECIFIC_INSTANCES !== 'false';
-    
-    // Set Kubernetes-specific options
-    this.tenantNamespaceFormat = options.tenantNamespaceFormat || process.env.TENANT_NAMESPACE_FORMAT || 'tenant-{tenantId}';
-    this.openfgaServiceName = options.openfgaServiceName || process.env.OPENFGA_SERVICE_NAME || 'openfga';
-    this.openfgaServicePort = options.openfgaServicePort || (process.env.OPENFGA_SERVICE_PORT ? parseInt(process.env.OPENFGA_SERVICE_PORT) : 8080);
-    
-    // Set default API URL
-    this.defaultApiUrl = options.apiUrl || process.env.OPENFGA_API_URL || `http://${process.env.OPENFGA_HOST || 'localhost'}:${process.env.OPENFGA_PORT || '8080'}`;
-    
+    // Set API URL
+    this.apiUrl = options.apiUrl || process.env.NEXT_PUBLIC_AUTH_SERVICE_API_URL || 'http://localhost:3040';
+
+    // Set API key
+    this.apiKey = options.apiKey || process.env.NEXT_PUBLIC_AUTH_SERVICE_API_KEY || '';
+
+    // Initialize cache with optional TTL
+    this.cache = new AuthCache(options.cacheTtl);
+
+    // Initialize API client with default values
+    this.apiClient = new AuthApiClient({
+      apiUrl: this.apiUrl,
+      apiKey: this.apiKey,
+      tenantId: 'default' // Will be updated when tenant ID is set
+    });
+
     // Try to get the tenant ID synchronously
     const syncTenantId = getTenantIdSync();
     if (syncTenantId) {
       this.setTenantId(syncTenantId);
     }
   }
-  
+
   /**
    * Initialize the auth client
    */
@@ -121,19 +56,15 @@ export class AuthClient {
         this.setTenantId('default');
       }
     }
-    
+
     // Validate required fields
-    if (!this.storeId) {
-      throw new Error('Store ID is required. Set it in the constructor options or OPENFGA_STORE_ID environment variable.');
+    if (!this.apiKey && process.env.NODE_ENV === 'production') {
+      console.warn('No API key provided for auth service. This may cause authentication issues in production.');
     }
-    
-    if (!this.authorizationModelId) {
-      throw new Error('Authorization model ID is required. Set it in the constructor options or OPENFGA_MODEL_ID environment variable.');
-    }
-    
+
     console.log(`Auth client initialized for tenant: ${this.currentTenantId}`);
   }
-  
+
   /**
    * Set the tenant ID
    * @param tenantId Tenant ID
@@ -142,36 +73,15 @@ export class AuthClient {
     if (this.currentTenantId === tenantId) {
       return;
     }
-    
+
     this.currentTenantId = tenantId;
-    
-    // Update the client with the new tenant-specific URL if needed
-    if (this.useTenantSpecificInstances) {
-      const apiUrl = this.getTenantSpecificApiUrl(tenantId);
-      this.client = new OpenFgaClient({
-        apiUrl,
-        storeId: this.storeId,
-      });
-      console.log(`Using tenant-specific OpenFGA instance at ${apiUrl}`);
-    } else {
-      this.client = new OpenFgaClient({
-        apiUrl: this.defaultApiUrl,
-        storeId: this.storeId,
-      });
-      console.log(`Using shared OpenFGA instance at ${this.defaultApiUrl}`);
-    }
+
+    // Update the API client with the new tenant ID
+    this.apiClient.setTenantId(tenantId);
+
+    console.log(`Using auth service at ${this.apiUrl} for tenant ${tenantId}`);
   }
-  
-  /**
-   * Get the OpenFGA client
-   */
-  private getClient(): OpenFgaClient {
-    if (!this.client) {
-      throw new Error('Auth client not initialized. Call initialize() first.');
-    }
-    return this.client;
-  }
-  
+
   /**
    * Check if a user has permission to access a resource
    * @param userId User ID
@@ -188,50 +98,50 @@ export class AuthClient {
     if (!this.currentTenantId) {
       throw new Error('Tenant ID not set. Call initialize() first.');
     }
-    
+
     // Generate cache key
-    const cacheKey = `${userId}:${permission}:${resourceType}:${resourceId}:${this.currentTenantId}`;
-    
+    const cacheKey = this.cache.getPermissionCacheKey(
+      userId,
+      permission,
+      resourceType,
+      resourceId,
+      this.currentTenantId
+    );
+
     // Check cache first
-    const cachedResult = authCache.get(cacheKey);
-    if (cachedResult && Date.now() - cachedResult.timestamp < CACHE_TTL) {
-      return cachedResult.result;
+    const cachedResult = this.cache.get<boolean>(cacheKey);
+    if (cachedResult !== undefined) {
+      return cachedResult;
     }
-    
+
     try {
       // Add tenant context to contextual tuples
-      const tuples = [
+      const contextualTuples = [
         {
           user: userId,
           relation: 'member',
           object: `tenant:${this.currentTenantId}`,
         },
       ];
-      
+
       // Check permission
-      const result = await this.getClient().check({
-        store_id: this.storeId,
-        authorization_model_id: this.authorizationModelId,
-        tuple_key: {
-          user: userId,
-          relation: permission,
-          object: `${resourceType}:${resourceId}`,
-        },
-        contextual_tuples: {
-          tuple_keys: tuples,
-        },
+      const result = await this.apiClient.check({
+        user: userId,
+        relation: permission,
+        object: `${resourceType}:${resourceId}`,
+        contextualTuples,
       });
-      
+
       // Cache the result
-      authCache.set(cacheKey, { result: result.allowed, timestamp: Date.now() });
-      
+      this.cache.set(cacheKey, result.allowed);
+
       return result.allowed;
     } catch (error) {
       console.error('Error checking permission', { error, userId, permission, resourceType, resourceId });
       return false;
     }
   }
-  
+
   /**
    * Grant a permission to a user
    * @param userId User ID
@@ -248,32 +158,32 @@ export class AuthClient {
     if (!this.currentTenantId) {
       throw new Error('Tenant ID not set. Call initialize() first.');
     }
-    
+
     try {
-      // Write tuple
-      await this.getClient().write({
-        store_id: this.storeId,
-        writes: {
-          tuple_keys: [
-            {
-              user: userId,
-              relation: permission,
-              object: `${resourceType}:${resourceId}`,
-            },
-          ],
-        },
+      // Grant permission
+      const result = await this.apiClient.grant({
+        user: userId,
+        relation: permission,
+        object: `${resourceType}:${resourceId}`,
       });
-      
+
       // Invalidate cache
-      this.invalidateCache(userId, permission, resourceType, resourceId);
-      
-      return true;
+      const cacheKey = this.cache.getPermissionCacheKey(
+        userId,
+        permission,
+        resourceType,
+        resourceId,
+        this.currentTenantId
+      );
+      this.cache.delete(cacheKey);
+
+      return result.success;
     } catch (error) {
       console.error('Error granting permission', { error, userId, permission, resourceType, resourceId });
       return false;
     }
   }
-  
+
   /**
    * Revoke a permission from a user
    * @param userId User ID
@@ -290,32 +200,32 @@ export class AuthClient {
     if (!this.currentTenantId) {
       throw new Error('Tenant ID not set. Call initialize() first.');
     }
-    
+
     try {
-      // Delete tuple
-      await this.getClient().write({
-        store_id: this.storeId,
-        deletes: {
-          tuple_keys: [
-            {
-              user: userId,
-              relation: permission,
-              object: `${resourceType}:${resourceId}`,
-            },
-          ],
-        },
+      // Revoke permission
+      const result = await this.apiClient.revoke({
+        user: userId,
+        relation: permission,
+        object: `${resourceType}:${resourceId}`,
       });
-      
+
       // Invalidate cache
-      this.invalidateCache(userId, permission, resourceType, resourceId);
-      
-      return true;
+      const cacheKey = this.cache.getPermissionCacheKey(
+        userId,
+        permission,
+        resourceType,
+        resourceId,
+        this.currentTenantId
+      );
+      this.cache.delete(cacheKey);
+
+      return result.success;
     } catch (error) {
       console.error('Error revoking permission', { error, userId, permission, resourceType, resourceId });
       return false;
     }
   }
-  
+
   /**
    * Check if a user is a member of a tenant
    * @param userId User ID
@@ -328,7 +238,7 @@ export class AuthClient {
       this.currentTenantId || 'default'
     );
   }
-  
+
   /**
    * Check if a user is an admin of a tenant
    * @param userId User ID
@@ -341,7 +251,7 @@ export class AuthClient {
       this.currentTenantId || 'default'
     );
   }
-  
+
   /**
    * Add a user to a tenant
    * @param userId User ID
@@ -351,7 +261,7 @@ export class AuthClient {
     if (!this.currentTenantId) {
       throw new Error('Tenant ID not set. Call initialize() first.');
     }
-    
+
     try {
       // Add user as member
       const memberResult = await this.grant(
@@ -360,7 +270,7 @@ export class AuthClient {
         ResourceType.TENANT,
         this.currentTenantId
       );
-      
+
       // If user should be admin, add admin permission
       if (isAdmin) {
         const adminResult = await this.grant(
@@ -369,17 +279,17 @@ export class AuthClient {
           ResourceType.TENANT,
           this.currentTenantId
         );
-        
+
         return memberResult && adminResult;
       }
-      
+
       return memberResult;
     } catch (error) {
       console.error('Error adding user to tenant', { error, userId, isAdmin });
       return false;
     }
   }
-  
+
   /**
    * Remove a user from a tenant
    * @param userId User ID
@@ -388,7 +298,7 @@ export class AuthClient {
     if (!this.currentTenantId) {
       throw new Error('Tenant ID not set. Call initialize() first.');
     }
-    
+
     try {
       // Remove member permission
       const memberResult = await this.revoke(
@@ -397,7 +307,7 @@ export class AuthClient {
         ResourceType.TENANT,
         this.currentTenantId
       );
-      
+
       // Remove admin permission
       const adminResult = await this.revoke(
         userId,
@@ -405,14 +315,14 @@ export class AuthClient {
         ResourceType.TENANT,
         this.currentTenantId
       );
-      
+
       return memberResult && adminResult;
     } catch (error) {
       console.error('Error removing user from tenant', { error, userId });
       return false;
     }
   }
-  
+
   /**
    * Update a user's role in a tenant
    * @param userId User ID
@@ -422,7 +332,7 @@ export class AuthClient {
     if (!this.currentTenantId) {
       throw new Error('Tenant ID not set. Call initialize() first.');
     }
-    
+
     try {
       if (isAdmin) {
         // Grant admin permission
@@ -446,25 +356,57 @@ export class AuthClient {
       return false;
     }
   }
-  
+
   /**
-   * Invalidate cache for a specific permission check
+   * Create a new tenant
+   * @param tenantId Tenant ID
+   * @param adminUserId Admin user ID
    */
-  private invalidateCache(
-    userId: string,
-    permission: Permission,
-    resourceType: ResourceType,
-    resourceId: string
-  ): void {
-    const cacheKey = `${userId}:${permission}:${resourceType}:${resourceId}:${this.currentTenantId}`;
-    authCache.delete(cacheKey);
+  public async createTenant(tenantId: string, adminUserId: string): Promise<boolean> {
+    try {
+      const result = await this.apiClient.createTenant({
+        tenantId,
+        adminUserId,
+      });
+
+      return result.success;
+    } catch (error) {
+      console.error('Error creating tenant', { error, tenantId, adminUserId });
+      return false;
+    }
   }
-  
+
   /**
-   * Get the tenant-specific API URL
+   * Delete a tenant
+   * @param tenantId Tenant ID
    */
-  private getTenantSpecificApiUrl(tenantId: string): string {
-    const namespace = this.tenantNamespaceFormat.replace('{tenantId}', tenantId);
-    return `http://${this.openfgaServiceName}.${namespace}.svc.cluster.local:${this.openfgaServicePort}`;
+  public async deleteTenant(tenantId: string): Promise<boolean> {
+    try {
+      const result = await this.apiClient.deleteTenant(tenantId);
+
+      // Invalidate cache for this tenant
+      this.cache.invalidateTenant(tenantId);
+
+      return result.success;
+    } catch (error) {
+      console.error('Error deleting tenant', { error, tenantId });
+      return false;
+    }
   }
+
+  /**
+   * List all tenants
+   */
+  public async listTenants(): Promise<string[]> {
+    try {
+      const result = await this.apiClient.listTenants();
+
+      return result.tenants;
+    } catch (error) {
+      console.error('Error listing tenants', error);
+      return [];
+    }
+  }
+
+
 }

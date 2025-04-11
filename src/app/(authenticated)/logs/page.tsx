@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { ErrorState, EmptyState, LoadingState } from '@/components/ui/ErrorState';
 import Link from 'next/link';
 import LogNameLink from '@/components/links/LogNameLink';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LogsIndexPage() {
   // State
@@ -13,6 +14,9 @@ export default function LogsIndexPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<unknown | null>(null);
   const [refreshCount, setRefreshCount] = useState(0);
+
+  // Get Auth0 token
+  const { getAccessToken } = useAuth();
 
   // Create a stable reference to the LogsService instance
   const logsServiceRef = useRef<LogsService | null>(null);
@@ -28,6 +32,14 @@ export default function LogsIndexPage() {
       setLoading(true);
       setError(null);
 
+      // Get the Auth0 token
+      const token = await getAccessToken();
+
+      // Set the Auth0 token in the LogsService
+      if (token) {
+        logsServiceRef.current!.setAuth0Token(token);
+      }
+
       console.log('Fetching log names');
       const names = await logsServiceRef.current!.getLogNames();
       console.log(`Received ${names.length} log names`);
@@ -39,7 +51,7 @@ export default function LogsIndexPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getAccessToken]);
 
   // Load log names on component mount or when refreshCount changes
   useEffect(() => {

@@ -3,7 +3,7 @@ import { LogsApiClient } from '@/sdk/logs/api-client';
 
 /**
  * GET /api/logs
- * 
+ *
  * Get all logs
  */
 export async function GET(request: NextRequest) {
@@ -11,10 +11,15 @@ export async function GET(request: NextRequest) {
     // Get tenant ID from headers
     const tenantId = request.headers.get('X-Tenant-ID') || 'default';
 
+    // Get Auth0 token from the request
+    const authHeader = request.headers.get('Authorization');
+    const auth0Token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined;
+
     // Create logs API client
     const client = new LogsApiClient({
       apiUrl: process.env.LOGS_API_URL || 'http://localhost:3030',
-      tenantId
+      tenantId,
+      auth0Token
     });
 
     // Get all logs

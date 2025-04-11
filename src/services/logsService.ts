@@ -7,6 +7,7 @@
 import { LogsApiClient } from '@/sdk/logs/api-client';
 import { LogEntry, LogSearchOptions } from '@/sdk/logs/types';
 import { AggregateStatistics, LogStatistics } from '@neurallog/shared';
+import { useAuthenticatedFetch } from '@/utils/api';
 
 // Default logs API URL - use our Next.js API routes
 const DEFAULT_LOGS_API_URL = '/api';
@@ -25,13 +26,15 @@ export class LogsService {
    * @param tenantId Tenant ID
    * @param apiKey API key
    * @param apiUrl API URL
+   * @param auth0Token Auth0 token
    */
-  constructor(tenantId: string, apiKey?: string, apiUrl: string = DEFAULT_LOGS_API_URL) {
+  constructor(tenantId: string, apiKey?: string, apiUrl: string = DEFAULT_LOGS_API_URL, auth0Token?: string) {
     this.tenantId = tenantId;
     this.apiUrl = apiUrl;
     this.client = new LogsApiClient({
       apiUrl,
       apiKey,
+      auth0Token,
       tenantId
     });
   }
@@ -44,6 +47,15 @@ export class LogsService {
   public setTenantId(tenantId: string): void {
     this.tenantId = tenantId;
     this.client.setTenantId(tenantId);
+  }
+
+  /**
+   * Set the Auth0 token
+   *
+   * @param token Auth0 token
+   */
+  public setAuth0Token(token: string): void {
+    this.client.setAuth0Token(token);
   }
 
   /**

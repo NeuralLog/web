@@ -11,6 +11,7 @@ import {
   AggregateStatisticsResponse,
   LogStatisticsResponse
 } from './types';
+import { exchangeToken } from '@/services/tokenExchangeService';
 
 /**
  * Logs service API client options
@@ -27,6 +28,11 @@ export interface LogsApiClientOptions {
   apiKey?: string;
 
   /**
+   * Auth0 token for authentication
+   */
+  auth0Token?: string;
+
+  /**
    * Tenant ID
    */
   tenantId: string;
@@ -38,11 +44,14 @@ export interface LogsApiClientOptions {
 export class LogsApiClient {
   private apiUrl: string;
   private apiKey?: string;
+  private auth0Token?: string;
   private tenantId: string;
+  private serverToken?: string;
 
   constructor(options: LogsApiClientOptions) {
     this.apiUrl = options.apiUrl;
     this.apiKey = options.apiKey;
+    this.auth0Token = options.auth0Token;
     this.tenantId = options.tenantId;
   }
 
@@ -58,6 +67,15 @@ export class LogsApiClient {
    */
   public setApiUrl(apiUrl: string): void {
     this.apiUrl = apiUrl;
+  }
+
+  /**
+   * Set the Auth0 token
+   */
+  public setAuth0Token(token: string): void {
+    this.auth0Token = token;
+    // Clear the server token so it will be refreshed on the next request
+    this.serverToken = undefined;
   }
 
   /**
@@ -88,7 +106,21 @@ export class LogsApiClient {
       'X-Tenant-ID': this.tenantId,
     };
 
-    if (this.apiKey) {
+    // If we have an Auth0 token, exchange it for a server token
+    if (this.auth0Token && !this.serverToken) {
+      try {
+        this.serverToken = await exchangeToken(this.auth0Token, this.tenantId);
+      } catch (error) {
+        console.error('Failed to exchange token:', error);
+      }
+    }
+
+    // Add authorization header if we have a server token
+    if (this.serverToken) {
+      headers['Authorization'] = `Bearer ${this.serverToken}`;
+    }
+    // Fall back to API key if no server token
+    else if (this.apiKey) {
       headers['X-API-Key'] = this.apiKey;
     }
 

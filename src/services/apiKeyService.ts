@@ -1,8 +1,5 @@
 import { ApiKey } from '@/types/apiKey';
-import { generateApiKey } from '@/utils/apiKey';
-import { getStorage } from '@/storage/storageInterface';
-import { registerApiKey, generateApiKeyProof } from '@/services/fgaService';
-import { useAuth } from '@/context/AuthContext';
+import { AuthApiKeyStorage } from './authApiKeyStorage';
 
 // In-memory cache of API keys
 let apiKeysCache: ApiKey[] | null = null;
@@ -16,7 +13,7 @@ export function clearApiKeys(): void {
 }
 
 /**
- * Gets all API keys from storage
+ * Gets all API keys from the auth service
  * @returns Array of API keys
  */
 export async function getApiKeys(): Promise<ApiKey[]> {
@@ -25,77 +22,30 @@ export async function getApiKeys(): Promise<ApiKey[]> {
     return apiKeysCache;
   }
 
-  // Get from storage
-  const storage = getStorage();
-  const keys = await storage.get<ApiKey[]>('apiKeys');
+  // Get from auth service
+  const storage = new AuthApiKeyStorage();
+  const keys = await storage.getApiKeys();
 
-  if (keys) {
-    apiKeysCache = keys;
-    return keys;
-  }
-
-  // Default to empty array
-  apiKeysCache = [];
-  return apiKeysCache;
-}
-
-/**
- * Saves API keys to storage
- * @param keys Array of API keys to save
- */
-async function saveApiKeys(keys: ApiKey[]): Promise<void> {
-  const storage = getStorage();
-  await storage.set('apiKeys', keys);
+  // Cache the keys
   apiKeysCache = keys;
+  return keys;
 }
 
 /**
  * Creates a new API key
  * @param name Name of the API key
  * @param scopes Scopes for the API key
- * @param userId User ID from Auth0 (optional, will use current user if not provided)
  * @returns The full API key and the key data
  */
-export async function createApiKey(name: string, scopes: string[], userId?: string): Promise<{ apiKey: string, keyData: ApiKey, proof: string }> {
-  // Generate a new API key
-  const apiKey = generateApiKey();
+export async function createApiKey(name: string, scopes: string[]): Promise<{ apiKey: string, keyData: ApiKey }> {
+  // Create a new API key using the auth service
+  const storage = new AuthApiKeyStorage();
+  const result = await storage.createApiKey(name, scopes);
 
-  // Create the API key data
-  const keyData: ApiKey = {
-    id: `key-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
-    name,
-    keyPrefix: apiKey.substring(0, 8),
-    scopes,
-    createdAt: new Date().toISOString(),
-    lastUsedAt: null
-  };
+  // Clear the cache to force a refresh on next getApiKeys call
+  clearApiKeys();
 
-  // Get the current user ID if not provided
-  let effectiveUserId = userId;
-  if (!effectiveUserId && typeof window !== 'undefined') {
-    try {
-      // This is a React hook, so it can only be used in components
-      // For service functions called outside of components, userId must be provided
-      const { user } = useAuth();
-      effectiveUserId = user?.sub || 'system';
-    } catch (error) {
-      console.warn('Could not get user ID from auth context, using system');
-      effectiveUserId = 'system';
-    }
-  }
-
-  // Save the API key to storage
-  const keys = await getApiKeys();
-  keys.push(keyData);
-  await saveApiKeys(keys);
-
-  // Register the API key with OpenFGA
-  await registerApiKey(keyData, effectiveUserId || 'system');
-
-  // Generate a proof for the API key
-  const proof = await generateApiKeyProof(apiKey, effectiveUserId || 'system');
-
-  return { apiKey, keyData, proof };
+  return result;
 }
 
 /**
@@ -103,10 +53,10 @@ export async function createApiKey(name: string, scopes: string[], userId?: stri
  * @param keyId ID of the API key to revoke
  */
 export async function revokeApiKey(keyId: string): Promise<void> {
-  const keys = await getApiKeys();
-  const updatedKeys = keys.filter(key => key.id !== keyId);
+  // Revoke the API key using the auth service
+  const storage = new AuthApiKeyStorage();
+  await storage.revokeApiKey(keyId);
 
-  if (updatedKeys.length !== keys.length) {
-    await saveApiKeys(updatedKeys);
-  }
+  // Clear the cache to force a refresh on next getApiKeys call
+  clearApiKeys();
 }

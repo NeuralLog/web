@@ -28,13 +28,39 @@ export async function GET(
       targetUrl += `?limit=${limit}`;
     }
 
+    // Get Auth0 token from the request
+    const authHeader = request.headers.get('Authorization');
+    const auth0Token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined;
+
+    // Get tenant ID from headers
+    const tenantId = request.headers.get('X-Tenant-ID') || 'default';
+
+    // Create headers for the logs server request
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      'X-Tenant-ID': tenantId,
+    };
+
+    // If we have an Auth0 token, exchange it for a server token
+    if (auth0Token) {
+      try {
+        // Import the token exchange service
+        const { exchangeToken } = await import('@/services/tokenExchangeService');
+
+        // Exchange the token
+        const serverToken = await exchangeToken(auth0Token, tenantId);
+
+        // Add the server token to the headers
+        headers['Authorization'] = `Bearer ${serverToken}`;
+      } catch (error) {
+        console.error('Failed to exchange token:', error);
+      }
+    }
+
     // Forward the request to the logs server
     const response = await fetch(targetUrl, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Tenant-ID': 'default',
-      },
+      headers,
     });
 
     // Check if the request was successful

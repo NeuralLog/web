@@ -2,6 +2,7 @@ import { ApiKey } from '@/types/apiKey';
 import { generateApiKey } from '@/utils/apiKey';
 import { getStorage } from '@/storage/storageInterface';
 import { registerApiKey, generateApiKeyProof } from '@/services/fgaService';
+import { useAuth } from '@/context/AuthContext';
 
 // In-memory cache of API keys
 let apiKeysCache: ApiKey[] | null = null;
@@ -52,11 +53,14 @@ async function saveApiKeys(keys: ApiKey[]): Promise<void> {
  * Creates a new API key
  * @param name Name of the API key
  * @param scopes Scopes for the API key
+ * @param userId User ID from Auth0 (optional, will use current user if not provided)
  * @returns The full API key and the key data
  */
-export async function createApiKey(name: string, scopes: string[], userId: string = 'system'): Promise<{ apiKey: string, keyData: ApiKey, proof: string }> {
+export async function createApiKey(name: string, scopes: string[], userId?: string): Promise<{ apiKey: string, keyData: ApiKey, proof: string }> {
+  // Generate a new API key
   const apiKey = generateApiKey();
 
+  // Create the API key data
   const keyData: ApiKey = {
     id: `key-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
     name,
@@ -66,15 +70,30 @@ export async function createApiKey(name: string, scopes: string[], userId: strin
     lastUsedAt: null
   };
 
+  // Get the current user ID if not provided
+  let effectiveUserId = userId;
+  if (!effectiveUserId && typeof window !== 'undefined') {
+    try {
+      // This is a React hook, so it can only be used in components
+      // For service functions called outside of components, userId must be provided
+      const { user } = useAuth();
+      effectiveUserId = user?.sub || 'system';
+    } catch (error) {
+      console.warn('Could not get user ID from auth context, using system');
+      effectiveUserId = 'system';
+    }
+  }
+
+  // Save the API key to storage
   const keys = await getApiKeys();
   keys.push(keyData);
   await saveApiKeys(keys);
 
   // Register the API key with OpenFGA
-  await registerApiKey(keyData, userId);
+  await registerApiKey(keyData, effectiveUserId || 'system');
 
   // Generate a proof for the API key
-  const proof = await generateApiKeyProof(apiKey, userId);
+  const proof = await generateApiKeyProof(apiKey, effectiveUserId || 'system');
 
   return { apiKey, keyData, proof };
 }

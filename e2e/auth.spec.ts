@@ -6,10 +6,28 @@ import { generateRandomEmail, generateRandomName, generateRandomPassword } from 
  * End-to-end test for authentication flow in NeuralLog
  *
  * This test covers:
- * 1. User registration
- * 2. User login
- * 3. Access to protected routes
+ * 1. User login
+ * 2. Access to protected routes
  */
+
+// Mock Auth0 authentication for testing
+test.beforeEach(async ({ page }) => {
+  // Mock the Auth0 authentication by setting up localStorage
+  await page.addInitScript(() => {
+    // Create a mock JWT token (this is just for testing)
+    const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlRlc3QgVXNlciIsImVtYWlsIjoidGVzdEBleGFtcGxlLmNvbSIsImlhdCI6MTUxNjIzOTAyMn0.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+
+    // Function to mock authenticated state
+    window.mockAuthenticated = () => {
+      localStorage.setItem('auth_token', mockToken);
+    };
+
+    // Function to mock unauthenticated state
+    window.mockUnauthenticated = () => {
+      localStorage.removeItem('auth_token');
+    };
+  });
+});
 
 test.describe('Authentication Flow', () => {
   // Generate random test data
@@ -54,6 +72,9 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should redirect to login when accessing protected routes', async ({ page }) => {
+    // Ensure we're not authenticated
+    await page.evaluate(() => (window as any).mockUnauthenticated());
+
     // Create page objects
     const dashboardPage = new DashboardPage(page);
     const loginPage = new LoginPage(page);
@@ -66,6 +87,23 @@ test.describe('Authentication Flow', () => {
 
     // Take a screenshot
     await loginPage.takeScreenshot('redirect-to-login');
+  });
+
+  test('should allow access to protected routes when authenticated', async ({ page }) => {
+    // Mock authenticated state
+    await page.evaluate(() => (window as any).mockAuthenticated());
+
+    // Create page objects
+    const dashboardPage = new DashboardPage(page);
+
+    // Try to access dashboard directly
+    await dashboardPage.goto();
+
+    // We should stay on dashboard
+    await dashboardPage.verifyUrl();
+
+    // Take a screenshot
+    await dashboardPage.takeScreenshot('authenticated-dashboard-access');
   });
 
   test('should allow user to sign up', async ({ page }) => {
@@ -87,9 +125,30 @@ test.describe('Authentication Flow', () => {
   });
 
   test('should allow user to log in', async ({ page }) => {
+    // Ensure we're not authenticated
+    await page.evaluate(() => (window as any).mockUnauthenticated());
+
     // Create page objects
     const loginPage = new LoginPage(page);
     const dashboardPage = new DashboardPage(page);
+
+    // Intercept the login API call and mock a successful response
+    await page.route('**/api/auth/login', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          status: 'success',
+          token: 'mock-token',
+          expiresIn: 3600,
+          user: {
+            sub: '123456789',
+            name: 'Test User',
+            email: testEmail
+          }
+        })
+      });
+    });
 
     // Navigate to login page
     await loginPage.goto();

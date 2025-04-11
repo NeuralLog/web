@@ -6,6 +6,7 @@ import ApiKeyForm from '@/components/ApiKeyForm/ApiKeyForm';
 import { ApiKeyDialog } from '@/components/ApiKeyManagement/ApiKeyDialog';
 import { ApiKey } from '@/types/apiKey';
 import { getApiKeys, createApiKey, revokeApiKey } from '@/services/apiKeyService';
+import { useAuth } from '@/context/AuthContext';
 
 export default function ApiKeysPage() {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
@@ -14,6 +15,7 @@ export default function ApiKeysPage() {
   const [error, setError] = useState<string | null>(null);
   const [newApiKey, setNewApiKey] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const { user } = useAuth();
 
   const onOpen = () => setIsOpen(true);
   const onClose = () => setIsOpen(false);
@@ -48,8 +50,9 @@ export default function ApiKeysPage() {
     setError(null);
 
     try {
-      // Create the API key using our service
-      const { apiKey, keyData } = await createApiKey(name, scopes);
+      // Create the API key using our service with the Auth0 user ID
+      const userId = user?.sub;
+      const { apiKey, keyData } = await createApiKey(name, scopes, userId);
 
       // Update state with the new keys from the service
       const keys = await getApiKeys();

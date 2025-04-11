@@ -1,0 +1,20 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install dependencies including autoprefixer and postcss
+RUN npm install
+RUN npm install -g npm@latest
+RUN npm install --save-dev autoprefixer postcss tailwindcss
+
+# Copy the rest of the application
+COPY . .
+
+# Expose port
+EXPOSE 3000
+
+# Start the application in development mode with webpack
+CMD ["npm", "run", "dev"]

@@ -1,0 +1,32 @@
+FROM node:18-alpine
+
+# Install necessary build tools
+RUN apk add --no-cache python3 make g++ git
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Install CSS dependencies globally to ensure they're available
+RUN npm install -g autoprefixer postcss tailwindcss
+
+# Copy the rest of the application
+COPY . .
+
+# Create a script to fix CSS dependencies at runtime
+RUN echo '#!/bin/sh\n\
+npm install -g autoprefixer postcss tailwindcss\n\
+npm install --no-save autoprefixer postcss tailwindcss\n\
+mkdir -p node_modules/.bin\n\
+ln -sf $(npm root -g)/autoprefixer/bin/autoprefixer node_modules/.bin/autoprefixer\n\
+ln -sf $(npm root -g)/postcss/bin/postcss node_modules/.bin/postcss\n\
+ln -sf $(npm root -g)/tailwindcss/lib/cli.js node_modules/.bin/tailwindcss\n\
+echo "CSS dependencies fixed!"\n\
+' > /usr/local/bin/fix-css-deps && chmod +x /usr/local/bin/fix-css-deps
+
+# Run the fix script before starting the application
+CMD ["/bin/sh", "-c", "fix-css-deps && npm run dev"]

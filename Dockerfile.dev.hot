@@ -1,0 +1,38 @@
+FROM node:22-alpine
+
+# Install necessary build tools and dependencies
+RUN apk add --no-cache python3 make g++ bash
+
+WORKDIR /app
+
+# Copy package files (only needed for initial build)
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install && \
+    npm install -g npm@latest
+
+# Explicitly install CSS-related dependencies
+RUN npm install --save-dev autoprefixer postcss tailwindcss
+
+# Create necessary directories and symlinks
+RUN mkdir -p node_modules/.bin && \
+    ln -sf ../autoprefixer/bin/autoprefixer node_modules/.bin/autoprefixer && \
+    ln -sf ../postcss/bin/postcss node_modules/.bin/postcss && \
+    ln -sf ../tailwindcss/lib/cli.js node_modules/.bin/tailwindcss
+
+# Copy the entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Note: We don't copy the application files here
+# They will be mounted from the host at runtime
+
+# Expose port
+EXPOSE 3000
+
+# Set the entrypoint script
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Start the application in development mode with hot reloading
+CMD ["npm", "run", "dev"]

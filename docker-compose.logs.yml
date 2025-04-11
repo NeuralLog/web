@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # Web application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev.hot
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_AUTH_SERVICE_API_URL=http://auth-service:3040
+      - NEXT_PUBLIC_AUTH_SERVICE_API_KEY=dev-api-key
+      - NEXT_PUBLIC_LOGS_SERVICE_API_URL=http://logs-server:3030
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
+      - TENANT_ID=default
+      - NEXT_TURBO=false
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    depends_on:
+      - redis
+      - auth-service
+      - logs-server
+
+  # Auth service
+  auth-service:
+    build:
+      context: ../auth
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3040:3040"
+    environment:
+      - NODE_ENV=development
+      - PORT=3040
+      - OPENFGA_API_URL=http://openfga:8080
+      - DEFAULT_TENANT_ID=default
+    volumes:
+      - ../auth:/app
+      - /app/node_modules
+    depends_on:
+      - openfga
+
+  # Logs server
+  logs-server:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    ports:
+      - "3030:3030"
+    environment:
+      - NODE_ENV=development
+      - PORT=3030
+      - STORAGE_TYPE=redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DEFAULT_NAMESPACE=default
+    volumes:
+      - ../server:/app
+      - /app/node_modules
+      - ../shared:/shared
+      - logs-server-data:/app/data
+    depends_on:
+      - redis
+
+  # Redis for tenant context, caching, and logs storage
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+  # Postgres for OpenFGA
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: openfga
+      POSTGRES_PASSWORD: openfga
+      POSTGRES_DB: openfga
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U openfga"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # OpenFGA migrations
+  openfga-migrate:
+    image: openfga/openfga:latest
+    depends_on:
+      - postgres
+    environment:
+      - OPENFGA_DATASTORE_ENGINE=postgres
+      - OPENFGA_DATASTORE_URI=postgresql://openfga:openfga@postgres:5432/openfga
+    command: migrate
+    restart: on-failure
+
+  # OpenFGA for authorization
+  openfga:
+    image: openfga/openfga:latest
+    depends_on:
+      - postgres
+      - openfga-migrate
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      - OPENFGA_DATASTORE_ENGINE=postgres
+      - OPENFGA_DATASTORE_URI=postgresql://openfga:openfga@postgres:5432/openfga
+      - OPENFGA_LOG_FORMAT=json
+      - OPENFGA_AUTHN_METHOD=none
+      - OPENFGA_PLAYGROUND_ENABLED=true
+    command: run
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  redis-data:
+  logs-server-data:

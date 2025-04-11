@@ -1,0 +1,48 @@
+FROM node:22-alpine
+
+# Install necessary build tools and dependencies
+RUN apk add --no-cache python3 make g++ bash
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies with clean npm cache
+RUN npm cache clean --force && \
+    npm install && \
+    npm install -g npm@latest
+
+# Explicitly install and verify CSS-related dependencies
+RUN npm install --save-dev autoprefixer postcss tailwindcss && \
+    npm list autoprefixer postcss tailwindcss
+
+# Create necessary directories and symlinks
+RUN mkdir -p node_modules/.bin && \
+    ln -sf ../autoprefixer/bin/autoprefixer node_modules/.bin/autoprefixer && \
+    ln -sf ../postcss/bin/postcss node_modules/.bin/postcss && \
+    ln -sf ../tailwindcss/lib/cli.js node_modules/.bin/tailwindcss
+
+# Copy the entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Copy the rest of the application
+COPY . .
+
+# Verify CSS config files exist
+RUN if [ ! -f "postcss.config.js" ]; then \
+      echo "module.exports = { plugins: { tailwindcss: {}, autoprefixer: {} } };" > postcss.config.js; \
+    fi && \
+    if [ ! -f "tailwind.config.js" ]; then \
+      npx tailwindcss init; \
+    fi
+
+# Expose port
+EXPOSE 3000
+
+# Set the entrypoint script
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Start the application in development mode
+CMD ["npm", "run", "dev"]

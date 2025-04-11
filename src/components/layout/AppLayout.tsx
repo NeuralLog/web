@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { FiHome, FiKey, FiSettings, FiLogOut, FiMoon, FiSun, FiMenu, FiList } from 'react-icons/fi';
+import { FiHome, FiKey, FiSettings, FiLogOut, FiMoon, FiSun, FiMenu, FiList, FiUserPlus } from 'react-icons/fi';
 import { useTheme } from '@/providers/ThemeProvider';
 import { useAuth } from '@/context/AuthContext';
 
@@ -88,6 +88,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <SidebarItem icon={FiKey} href="/apikeys" isActive={pathname === '/apikeys'}>
                 API Keys
               </SidebarItem>
+              <SidebarItem icon={FiUserPlus} href="/admin/invitations" isActive={pathname === '/admin/invitations'}>
+                Invitations
+              </SidebarItem>
               <SidebarItem icon={FiSettings} href="/settings" isActive={pathname === '/settings'}>
                 Settings
               </SidebarItem>
@@ -153,6 +156,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   </SidebarItem>
                   <SidebarItem icon={FiKey} href="/apikeys" isActive={pathname === '/apikeys'}>
                     API Keys
+                  </SidebarItem>
+                  <SidebarItem icon={FiUserPlus} href="/admin/invitations" isActive={pathname === '/admin/invitations'}>
+                    Invitations
                   </SidebarItem>
                   <SidebarItem icon={FiSettings} href="/settings" isActive={pathname === '/settings'}>
                     Settings

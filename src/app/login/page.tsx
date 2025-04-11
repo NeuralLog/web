@@ -3,22 +3,35 @@
 import { Button } from '@/components/ui/Button';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { login, error } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    // Simulate login process
-    setTimeout(() => {
+    setErrorMessage(null);
+
+    try {
+      // Attempt to login with the auth service
+      const success = await login(email, password);
+
+      if (success) {
+        // Redirect is handled by the auth provider
+      } else {
+        setErrorMessage('Login failed. Please check your credentials.');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrorMessage('An error occurred during login. Please try again.');
+    } finally {
       setIsLoading(false);
-      // In a real app, you would redirect to dashboard after successful login
-      window.location.href = '/dashboard';
-    }, 1500);
+    }
   };
 
   return (
@@ -38,6 +51,13 @@ export default function LoginPage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {(errorMessage || error) && (
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md p-3 mb-4">
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {errorMessage || error}
+                </p>
+              </div>
+            )}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email address

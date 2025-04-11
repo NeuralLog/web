@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { FiHome, FiKey, FiSettings, FiLogOut, FiMoon, FiSun, FiMenu, FiList } from 'react-icons/fi';
 import { useTheme } from '@/providers/ThemeProvider';
+import { useAuth } from '@/context/AuthContext';
 
 interface SidebarItemProps {
   icon: React.ElementType;
@@ -31,6 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const { logout, user } = useAuth();
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100 dark:bg-gray-900">
@@ -99,7 +101,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
             </button>
-            <button className="p-2 text-gray-400 rounded-md hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <button
+              className="p-2 text-gray-400 rounded-md hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              onClick={logout}
+              aria-label="Logout"
+            >
               <FiLogOut className="w-5 h-5" />
             </button>
           </div>
@@ -116,6 +122,27 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   NeuralLog
                 </Link>
               </div>
+
+              {/* User profile */}
+              {user && (
+                <div className="flex items-center px-4 py-3 mt-2 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex-shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold">
+                      {user.name ? user.name.charAt(0).toUpperCase() : user.email?.charAt(0).toUpperCase()}
+                    </div>
+                  </div>
+                  <div className="ml-3">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      {user.name || user.email}
+                    </div>
+                    {user.email && user.name && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {user.email}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="flex flex-col flex-1 mt-5">
                 <nav className="flex-1 space-y-2">
                   <SidebarItem icon={FiHome} href="/dashboard" isActive={pathname === '/dashboard'}>
@@ -141,7 +168,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
               </button>
-              <button className="p-2 text-gray-400 rounded-md hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500">
+              <button
+                className="p-2 text-gray-400 rounded-md hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                onClick={logout}
+                aria-label="Logout"
+              >
                 <FiLogOut className="w-5 h-5" />
               </button>
             </div>

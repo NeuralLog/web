@@ -3,7 +3,7 @@
 import React from 'react';
 import { TenantProvider } from './TenantProvider';
 import { UserProvider } from './UserProvider';
-import { AuthProvider } from '@/sdk/auth';
+import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from './ThemeProvider';
 
 /**
@@ -15,13 +15,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     <ThemeProvider>
       <TenantProvider>
         <UserProvider>
-          <AuthProvider
-            options={{
-              apiUrl: process.env.NEXT_PUBLIC_AUTH_SERVICE_API_URL,
-              apiKey: process.env.NEXT_PUBLIC_AUTH_SERVICE_API_KEY,
-              cacheTtl: process.env.NEXT_PUBLIC_AUTH_CACHE_TTL ? parseInt(process.env.NEXT_PUBLIC_AUTH_CACHE_TTL) : undefined
-            }}
-          >
+          <AuthProvider>
             {children}
           </AuthProvider>
         </UserProvider>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getCurrentUser } from '@/services/userService';
+import { getCurrentUser } from '../services/userService';
 import { useTenantContext } from './TenantProvider';
 
 // Define the user type
@@ -39,15 +39,15 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
-  
+
   // Get the tenant context
   const { tenantId } = useTenantContext();
-  
+
   // Function to load the current user
   const loadUser = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
@@ -58,17 +58,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   };
-  
+
   // Load the user on mount and when tenant changes
   useEffect(() => {
     loadUser();
   }, [tenantId]);
-  
+
   // Function to refresh the user
   const refreshUser = async () => {
     await loadUser();
   };
-  
+
   return (
     <UserContext.Provider value={{ user, isLoading, error, refreshUser }}>
       {children}

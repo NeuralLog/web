@@ -1,97 +1,66 @@
-'use client';
+// 'use client'; // Removed to make it a Server Component
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { LogsService } from '@/services/logsService';
-import { Button } from '@/components/ui/Button';
-import { ErrorState, EmptyState, LoadingState } from '@/components/ui/ErrorState';
+import React from 'react'; // Removed client-side hooks
+import { LogsService } from '../../../services/logsService'; // Use relative path
+// import { Button } from '@/components/ui/Button'; // Module not found - Commented out
+// import { ErrorState, EmptyState, LoadingState } from '@/components/ui/ErrorState'; // Module not found - Commented out
 import Link from 'next/link';
-import LogNameLink from '@/components/links/LogNameLink';
-import { useAuth } from '@/context/AuthContext';
+// import LogNameLink from '@/components/links/LogNameLink'; // Module not found - Commented out
+// import { useAuth } from '@/context/AuthContext'; // Removed useAuth
 
-export default function LogsIndexPage() {
-  // State
-  const [logNames, setLogNames] = useState<string[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<unknown | null>(null);
-  const [refreshCount, setRefreshCount] = useState(0);
-
-  // Get Auth0 token
-  const { getAccessToken } = useAuth();
-
-  // Create a stable reference to the LogsService instance
-  const logsServiceRef = useRef<LogsService | null>(null);
-
-  // Initialize the LogsService if it doesn't exist
-  if (!logsServiceRef.current) {
-    logsServiceRef.current = new LogsService('default');
+// Server Component - fetch data directly
+async function getLogNamesData() {
+  // Note: Assumes LogsService constructor doesn't rely on client-side context
+  // and that the /api/logs route reads the httpOnly cookie for auth.
+  // Tenant ID might need to be read from headers/context if applicable server-side.
+  const logsService = new LogsService('default'); // Or get tenantId appropriately
+  try {
+    console.log('Fetching log names (Server Component)');
+    const names = await logsService.getLogNames();
+    console.log(`Received ${names.length} log names (Server Component)`);
+    return { logNames: names, error: null };
+  } catch (err) {
+    console.error('Error fetching log names (Server Component):', err);
+    return { logNames: [], error: err };
   }
+}
 
-  // Fetch log names
-  const fetchLogNames = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+export default async function LogsIndexPage() {
+  // Fetch data on the server
+  const { logNames, error } = await getLogNamesData();
 
-      // Get the Auth0 token
-      const token = await getAccessToken();
-
-      // Set the Auth0 token in the LogsService
-      if (token) {
-        logsServiceRef.current!.setAuth0Token(token);
-      }
-
-      console.log('Fetching log names');
-      const names = await logsServiceRef.current!.getLogNames();
-      console.log(`Received ${names.length} log names`);
-
-      setLogNames(names);
-    } catch (err) {
-      console.error('Error fetching log names:', err);
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [getAccessToken]);
-
-  // Load log names on component mount or when refreshCount changes
-  useEffect(() => {
-    fetchLogNames();
-  }, [fetchLogNames, refreshCount]);
-
-  // Handle refresh button click
-  const handleRefresh = () => {
-    setRefreshCount(prev => prev + 1);
-  };
+  // Refresh logic needs rethinking for Server Components (e.g., router.refresh())
+  // const handleRefresh = () => { ... };
+  // Stray brace removed
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Logs</h1>
-        <Button
-          onClick={handleRefresh}
-          disabled={loading}
+        {/* <Button
+          // onClick={handleRefresh} // Client-side refresh removed
+          disabled={true} // Disable refresh for now
           variant="outline"
         >
-          {loading ? 'Loading...' : 'Refresh'}
-        </Button>
+          Refresh (Disabled)
+        </Button> */}
+        <button disabled={true}>Refresh (Disabled)</button> {/* Basic button */}
       </div>
 
       {/* Error message */}
       {error && (
         <div className="mt-4">
-          <ErrorState
-            error={error}
-            onRetry={fetchLogNames}
-          />
+          {/* <ErrorState
+            error={error instanceof Error ? error : new Error(String(error))}
+            // onRetry={fetchLogNames} // Client-side retry removed
+          /> */}
+          <div className="text-red-500">Error loading logs: {error instanceof Error ? error.message : String(error)}</div>
         </div>
       )}
 
       {/* Log list */}
-      {loading && !error ? (
-        <div className="mt-8">
-          <LoadingState message="Loading logs..." />
-        </div>
-      ) : (
+      {/* Server components render directly, no explicit loading state needed here unless using Suspense */}
+      {!error && (
         <div className="mt-8">
           <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:px-6">
@@ -106,7 +75,8 @@ export default function LogsIndexPage() {
             <div className="border-t border-gray-200 dark:border-gray-700">
               {logNames.length === 0 ? (
                 <div className="px-4 py-5 sm:px-6">
-                  <EmptyState message="No logs found" />
+                  {/* <EmptyState message="No logs found" /> */}
+                  <p>No logs found.</p>
                 </div>
               ) : (
                 <ul className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -115,9 +85,11 @@ export default function LogsIndexPage() {
                       <div className="block hover:bg-gray-50 dark:hover:bg-gray-700">
                         <div className="px-4 py-4 sm:px-6">
                           <div className="flex items-center justify-between">
-                            <LogNameLink logName={logName} className="text-lg font-medium truncate">
+                            {/* <LogNameLink logName={logName} className="text-lg font-medium truncate"> */}
+                            <Link href={`/logs/${logName}`} className="text-lg font-medium truncate text-blue-600 hover:underline">
                               {logName}
-                            </LogNameLink>
+                            {/* </LogNameLink> */}
+                            </Link>
                             <div className="ml-2 flex-shrink-0 flex">
                               <p className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">
                                 View

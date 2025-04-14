@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:turbo": "set NEXT_TURBO=true && next dev",
+    "dev:src": "next dev -d src",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -37,11 +38,15 @@
     "fga:init": "ts-node scripts/init-openfga.ts"
   },
   "dependencies": {
-    "@neurallog/auth-client": "0.1.0",
+    "@neurallog/auth-client": "0.1.4",
+    "@neurallog/client-sdk": "0.1.1",
+    "@neurallog/sdk": "1.1.1",
     "@neurallog/shared": "1.0.0",
     "@openfga/sdk": "^0.3.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cookie": "^1.0.2",
+    "jwt-decode": "^4.0.0",
     "next": "^15.2.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

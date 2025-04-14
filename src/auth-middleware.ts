@@ -1,30 +1,18 @@
-import { authMiddleware } from '@clerk/nextjs';
- 
+import { NextRequest, NextResponse } from 'next/server';
+
 /**
- * Clerk Authentication Middleware
- * 
- * This middleware handles authentication for all routes.
- * It runs after the tenant middleware (middleware.ts).
+ * Authentication Middleware (Placeholder)
+ *
+ * This middleware is currently a placeholder after removing Clerk.
+ * It will be updated later to handle token validation/forwarding.
  */
-export default authMiddleware({
-  // Public routes that don't require authentication
-  publicRoutes: [
-    '/',
-    '/api/health',
-    '/login',
-    '/sign-up',
-    '/api/webhook/clerk',
-    '/public/(.*)',
-  ],
-  
-  // Optional: Define routes that should be ignored by the middleware
-  ignoredRoutes: [
-    '/_next/static/(.*)',
-    '/favicon.ico',
-    '/api/webhook/(.*)',
-  ],
-});
- 
+export default function authMiddleware(req: NextRequest) {
+  // Currently does nothing, just passes the request through.
+  return NextResponse.next();
+}
+
+// Keep the config to ensure it runs in the intended sequence,
+// but the function itself is now a no-op.
 export const config = {
   matcher: ['/((?!.*\\..*|_next).*)', '/', '/(api|trpc)(.*)'],
 };

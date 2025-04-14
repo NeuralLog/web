@@ -8,13 +8,11 @@ import { useAuth } from '@/context/AuthContext';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { login, error } = useAuth();
+  const { login, error, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMessage(null);
 
     try {
@@ -29,8 +27,6 @@ export default function LoginPage() {
     } catch (error) {
       console.error('Login error:', error);
       setErrorMessage('An error occurred during login. Please try again.');
-    } finally {
-      setIsLoading(false);
     }
   };
 

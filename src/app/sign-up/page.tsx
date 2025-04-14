@@ -15,6 +15,10 @@ export default function SignUpPage() {
   const [isRegistrationLocked, setIsRegistrationLocked] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(true);
   const [error, setError] = useState('');
+  const [invitationId, setInvitationId] = useState<string | null>(null);
+  const [invitationEmail, setInvitationEmail] = useState<string | null>(null);
+  const [isValidatingInvitation, setIsValidatingInvitation] = useState(false);
+  const [invitationError, setInvitationError] = useState<string | null>(null);
   const router = useRouter();
   const { user } = useAuth();
 
@@ -41,6 +45,22 @@ export default function SignUpPage() {
       router.push('/dashboard');
     }
   }, [user, router]);
+
+  // Check for invitation in URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('invitation');
+      const email = params.get('email');
+
+      if (id && email) {
+        setInvitationId(id);
+        setInvitationEmail(email);
+        setEmail(email);
+        validateInvitation(id, email);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,26 +146,6 @@ export default function SignUpPage() {
   }
 
   // Get invitation from query params
-  const [invitationId, setInvitationId] = useState<string | null>(null);
-  const [invitationEmail, setInvitationEmail] = useState<string | null>(null);
-  const [isValidatingInvitation, setIsValidatingInvitation] = useState(false);
-  const [invitationError, setInvitationError] = useState<string | null>(null);
-
-  // Check for invitation in URL
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const id = params.get('invitation');
-      const email = params.get('email');
-
-      if (id && email) {
-        setInvitationId(id);
-        setInvitationEmail(email);
-        setEmail(email);
-        validateInvitation(id, email);
-      }
-    }
-  }, []);
 
   // Validate invitation
   const validateInvitation = async (id: string, email: string) => {

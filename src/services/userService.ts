@@ -5,9 +5,9 @@
  * It uses Clerk for user authentication and management, and OpenFGA for tenant relationships.
  */
 
-// Import Clerk client-side components
-import { useAuth } from '@clerk/nextjs';
-import { isUserInTenant as fgaIsUserInTenant, addUserToTenant as fgaAddUserToTenant, removeUserFromTenant as fgaRemoveUserFromTenant } from '@/services/fgaService';
+// Clerk import removed as it's unused and Clerk is being replaced
+// import { useAuth } from '@clerk/nextjs';
+// import { isUserInTenant as fgaIsUserInTenant, addUserToTenant as fgaAddUserToTenant, removeUserFromTenant as fgaRemoveUserFromTenant } from '@/services/fgaService'; // Module not found, and logic is mocked
 
 /**
  * Get the current authenticated user

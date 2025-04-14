@@ -1,9 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getTenantId as getServerTenantId, setTenantId as setServerTenantId, getTenantIdSync } from '@/services/tenantContext';
+import { getTenantId as getServerTenantId, setTenantId as setServerTenantId, getTenantIdSync } from '../services/tenantContext';
 // Import clearTenantContextSync separately to avoid build issues
-import { clearTenantContext } from '@/services/tenantContext';
+import { clearTenantContext } from '../services/tenantContext';
 
 // Define the context type
 interface TenantContextType {

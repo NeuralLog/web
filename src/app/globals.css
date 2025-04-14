@@ -14,7 +14,7 @@
 
 @layer base {
   body {
-    @apply bg-background text-foreground;
+    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-white;
     font-family: Arial, Helvetica, sans-serif;
   }
 }

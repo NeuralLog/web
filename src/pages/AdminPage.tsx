@@ -39,6 +39,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useConfig } from '../hooks/useConfig';
 import axios from 'axios';
 import { AdminPromotionFlow, PendingAdminPromotions, KEKManagement } from '../components/admin';
+import KEKVersionList from '../components/admin/KEKVersionList';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -364,7 +365,10 @@ const AdminPage: React.FC = () => {
 
           {/* KEK Management Tab */}
           <TabPanel value={tabValue} index={1}>
-            <KEKManagement />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <KEKVersionList />
+              <KEKManagement />
+            </Box>
           </TabPanel>
         </Paper>
       </Box>

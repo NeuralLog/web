@@ -20,6 +20,7 @@ import { SerializedSecretShare } from '@neurallog/typescript-client-sdk';
 import { useConfig } from '../hooks/useConfig';
 import { MnemonicInputGrid } from '../components/mnemonic';
 import { KEKVersionRecovery } from '../components/recovery';
+import KEKRecoveryFlow from '../components/recovery/KEKRecoveryFlow';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -244,6 +245,7 @@ const RecoveryPage: React.FC = () => {
                 <Tab label="Mnemonic Phrase" id="recovery-tab-0" aria-controls="recovery-tabpanel-0" />
                 <Tab label="Legacy Recovery Phrase" id="recovery-tab-1" aria-controls="recovery-tabpanel-1" />
                 <Tab label="Secret Shares" id="recovery-tab-2" aria-controls="recovery-tabpanel-2" />
+                <Tab label="KEK Recovery" id="recovery-tab-3" aria-controls="recovery-tabpanel-3" />
               </Tabs>
             </Box>
           ) : (
@@ -376,6 +378,20 @@ const RecoveryPage: React.FC = () => {
                 {loading ? <CircularProgress size={24} /> : 'Recover with Shares'}
               </Button>
             </Box>
+          </TabPanel>}
+
+          {/* KEK Recovery Flow Tab */}
+          {recoveryStep === 'initial' && <TabPanel value={tabValue} index={3}>
+            <KEKRecoveryFlow
+              onComplete={() => {
+                setSuccess(true);
+                // Navigate to dashboard after a delay
+                setTimeout(() => {
+                  navigate('/');
+                }, 3000);
+              }}
+              onCancel={() => setTabValue(0)}
+            />
           </TabPanel>}
         </Paper>
 

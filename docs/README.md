@@ -8,6 +8,7 @@ Welcome to the NeuralLog Web documentation. This documentation provides detailed
 - [Architecture](#architecture)
 - [Components](#components)
 - [Zero-Knowledge Implementation](#zero-knowledge-implementation)
+- [Data Retention](#data-retention)
 - [Getting Started](#getting-started)
 - [Development](#development)
 - [Deployment](#deployment)
@@ -21,6 +22,7 @@ Key features:
 - Viewing and searching logs with client-side decryption
 - Managing API keys
 - Configuring Key Encryption Keys (KEKs)
+- Setting data retention policies
 - User management and authentication
 - Zero-knowledge architecture implementation
 
@@ -88,6 +90,35 @@ The key hierarchy is implemented as follows:
 2. **Tenant ID**: Combined with the master secret to create tenant-specific keys
 3. **Log Encryption Keys**: Derived from the master secret and tenant ID for each log
 4. **Search Keys**: Derived from the master secret and tenant ID for searchable encryption
+
+## Data Retention
+
+NeuralLog implements a comprehensive data retention policy system that allows tenants to control how long their log data is stored. This feature is fully integrated with the zero-knowledge architecture, ensuring that log names remain encrypted and private.
+
+### Key Features
+
+- **Default Tenant Policy**: Set a default retention period for all logs in a tenant
+- **Per-Log Policies**: Configure specific retention periods for individual logs
+- **Automatic Cleanup**: Expired log entries are automatically deleted based on retention policies
+- **Impact Analysis**: Check how many log entries would be affected by a policy change before applying it
+
+### User Interface
+
+The NeuralLog Web application provides a user-friendly interface for managing retention policies in the Settings section:
+
+1. **Default Policy Management**: View and update the default retention policy for all logs
+2. **Log-Specific Policy Management**: Set, update, and delete retention policies for specific logs
+3. **Impact Analysis**: Check the impact of policy changes before applying them
+
+### Implementation
+
+The data retention system is implemented with these key components:
+
+1. **Client-Side Encryption**: Log names in retention policies are encrypted client-side
+2. **Metadata Storage**: Minimal metadata about log entries is stored for retention enforcement
+3. **Purge Mechanism**: A scheduled job runs periodically to delete expired log entries
+
+For detailed information about the data retention system, see the [Data Retention](./data-retention.md) documentation.
 
 ## Getting Started
 

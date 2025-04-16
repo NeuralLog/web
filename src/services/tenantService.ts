@@ -1,13 +1,13 @@
-import { OpenFgaClient } from '@openfga/sdk';
+import { OpenFGAClient } from '@openfga/sdk';
 import { initializeFga } from './fgaService';
 
 // Initialize the OpenFGA client
-let fgaClient: OpenFgaClient | null = null;
+let fgaClient: OpenFGAClient | null = null;
 
 /**
  * Ensure the FGA client is initialized
  */
-async function ensureFgaClient(): Promise<OpenFgaClient> {
+async function ensureFgaClient(): Promise<OpenFGAClient> {
   if (!fgaClient) {
     await initializeFga();
     
@@ -15,7 +15,7 @@ async function ensureFgaClient(): Promise<OpenFgaClient> {
     const FGA_API_URL = process.env.FGA_API_URL || 'http://localhost:8080';
     const FGA_STORE_ID = process.env.FGA_STORE_ID || '';
     
-    fgaClient = new OpenFgaClient({
+    fgaClient = new OpenFGAClient({
       apiUrl: FGA_API_URL,
       storeId: FGA_STORE_ID,
     });

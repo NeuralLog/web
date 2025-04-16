@@ -9,7 +9,6 @@
 // Define types locally if needed, or assume fetch returns correct structure
 type LogEntry = any; // Placeholder type
 type LogSearchOptions = any; // Placeholder type
-import { AggregateStatistics, LogStatistics } from '@neurallog/shared';
 import { getAuthToken, exchangeTokenForResource } from './tokenExchangeService';
 
 // Default logs API URL - use our Next.js API routes
@@ -297,76 +296,7 @@ export class LogsService {
     return []; // Placeholder
   }
 
-  /**
-   * Get aggregate statistics for all logs
-   *
-   * @returns Aggregate statistics
-   */
-  public async getAggregateStatistics(): Promise<AggregateStatistics> {
-    try {
-      // Try direct fetch first for better performance
-      try {
-        const response = await fetch('/api/statistics', {
-          cache: 'no-store',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Tenant-ID': this.tenantId,
-          },
-        });
 
-        if (response.ok) {
-          const data = await response.json();
-          return data as AggregateStatistics;
-        }
-      } catch (directError) {
-        console.warn('Direct fetch failed for statistics, falling back to client:', directError);
-      }
 
-      // Fallback logic removed
-      console.error('Direct fetch failed for /api/statistics');
-      throw new Error('Failed to fetch aggregate statistics'); // Re-throw or return default
-    } catch (error) {
-      console.error('Error getting aggregate statistics:', error);
-      return {
-        totalLogs: 0,
-        totalEntries: 0,
-        logStats: []
-      };
-    }
-  }
 
-  /**
-   * Get statistics for a specific log
-   *
-   * @param logName Log name
-   * @returns Log statistics
-   */
-  public async getLogStatistics(logName: string): Promise<LogStatistics | null> {
-    try {
-      // Try direct fetch first for better performance
-      try {
-        const response = await fetch(`/api/logs/${logName}/statistics`, {
-          cache: 'no-store',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Tenant-ID': this.tenantId,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          return data as LogStatistics;
-        }
-      } catch (directError) {
-        console.warn(`Direct fetch failed for log statistics ${logName}, falling back to client:`, directError);
-      }
-
-      // Fallback logic removed
-      console.error(`Direct fetch failed for /api/logs/${logName}/statistics`);
-      throw new Error(`Failed to fetch statistics for log ${logName}`); // Re-throw or return null
-    } catch (error) {
-      console.error(`Error getting log statistics for ${logName}:`, error);
-      return null;
-    }
-  }
 }

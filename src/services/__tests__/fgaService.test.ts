@@ -5,7 +5,7 @@ const mockCheck = jest.fn().mockResolvedValue({ allowed: true });
 const mockWrite = jest.fn().mockResolvedValue({});
 
 jest.mock('@openfga/sdk', () => ({
-  OpenFgaClient: jest.fn().mockImplementation(() => ({
+  OpenFGAClient: jest.fn().mockImplementation(() => ({
     check: mockCheck,
     write: mockWrite
   }))

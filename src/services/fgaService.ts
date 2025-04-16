@@ -1,4 +1,4 @@
-import { OpenFgaClient } from '@openfga/sdk';
+import { OpenFGAClient } from '@openfga/sdk';
 import { ApiKey } from '@/types/apiKey';
 import { getTenantId } from '@/services/tenantContext';
 
@@ -7,10 +7,10 @@ const FGA_API_URL = process.env.NEXT_PUBLIC_OPENFGA_API_URL || 'http://localhost
 const FGA_STORE_ID = process.env.NEXT_PUBLIC_OPENFGA_STORE_ID || '';
 
 // Cache for FGA clients
-const fgaClients = new Map<string, OpenFgaClient>();
+const fgaClients = new Map<string, OpenFGAClient>();
 
 // Initialize the OpenFGA client
-let fgaClient: OpenFgaClient | null = null;
+let fgaClient: OpenFGAClient | null = null;
 let fgaStoreId: string = FGA_STORE_ID;
 
 /**
@@ -29,7 +29,7 @@ export function resetForTests(storeId: string): void {
  * Initialize the OpenFGA client and store
  * This should be called during application startup
  */
-export async function initializeFga(): Promise<OpenFgaClient> {
+export async function initializeFga(): Promise<OpenFGAClient> {
   try {
     // For client-side rendering, we'll use a mock client
     if (typeof window !== 'undefined') {
@@ -38,7 +38,7 @@ export async function initializeFga(): Promise<OpenFgaClient> {
         check: async () => ({ allowed: true }),
         write: async () => ({}),
         // Add other methods as needed
-      } as unknown as OpenFgaClient;
+      } as unknown as OpenFGAClient;
 
       fgaClient = mockClient;
       return mockClient;
@@ -53,7 +53,7 @@ export async function initializeFga(): Promise<OpenFgaClient> {
     }
 
     // Create the OpenFGA client
-    fgaClient = new OpenFgaClient({
+    fgaClient = new OpenFGAClient({
       apiUrl: FGA_API_URL,
       storeId: fgaStoreId,
       authorizationModelId: process.env.NEXT_PUBLIC_OPENFGA_MODEL_ID,
@@ -82,7 +82,7 @@ export async function initializeFga(): Promise<OpenFgaClient> {
       check: async () => ({ allowed: true }),
       write: async () => ({}),
       // Add other methods as needed
-    } as unknown as OpenFgaClient;
+    } as unknown as OpenFGAClient;
 
     fgaClient = mockClient;
     return mockClient;
@@ -407,7 +407,7 @@ async function simpleHash(value: string): Promise<string> {
  * @returns Whether the user has access
  */
 export async function checkUserAccess(
-  fga: OpenFgaClient,
+  fga: OpenFGAClient,
   userId: string,
   relation: string,
   object: string
@@ -434,7 +434,7 @@ export async function checkUserAccess(
  * @param object The object to add the relation to
  */
 export async function addUserRelation(
-  fga: OpenFgaClient,
+  fga: OpenFGAClient,
   userId: string,
   relation: string,
   object: string
@@ -465,7 +465,7 @@ export async function addUserRelation(
  * @param object The object to remove the relation from
  */
 export async function removeUserRelation(
-  fga: OpenFgaClient,
+  fga: OpenFGAClient,
   userId: string,
   relation: string,
   object: string

@@ -9,7 +9,7 @@
  */
 
 const Redis = require('ioredis');
-const { OpenFgaClient } = require('@openfga/sdk');
+const { OpenFGAClient } = require('@openfga/sdk');
 const { authorizationModel } = require('../src/models/authorizationModel');
 
 // Configuration
@@ -31,7 +31,7 @@ const TEST_USER_ID = 'test-user';
 const redis = new Redis(REDIS_CONFIG);
 
 // Initialize OpenFGA client
-const openFgaClient = new OpenFgaClient(OPENFGA_CONFIG);
+const openFgaClient = new OpenFGAClient(OPENFGA_CONFIG);
 
 /**
  * Set up Redis with default tenant
@@ -49,7 +49,7 @@ async function setupRedis() {
 /**
  * Set up OpenFGA with authorization model and default tenant
  */
-async function setupOpenFga() {
+async function setupOpenFGA() {
   console.log('Setting up OpenFGA...');
 
   try {
@@ -149,7 +149,7 @@ async function setup() {
     await setupRedis();
 
     // Setup OpenFGA
-    await setupOpenFga();
+    await setupOpenFGA();
 
     console.log('Development environment setup complete!');
     console.log('\nYou can now use the following test credentials:');

@@ -3,14 +3,14 @@
  * It creates a store and authorization model for API key management
  */
 
-import { OpenFgaClient } from '@openfga/sdk';
+import { OpenFGAClient } from '@openfga/sdk';
 
 async function main() {
   try {
     console.log('Initializing OpenFGA...');
 
     // Create the OpenFGA client
-    const fgaClient = new OpenFgaClient({
+    const fgaClient = new OpenFGAClient({
       apiUrl: process.env.FGA_API_URL || 'http://localhost:8080',
     });
 
@@ -23,7 +23,7 @@ async function main() {
     console.log(`Created store with ID: ${storeId}`);
 
     // Update the client with the store ID
-    const clientWithStore = new OpenFgaClient({
+    const clientWithStore = new OpenFGAClient({
       apiUrl: process.env.FGA_API_URL || 'http://localhost:8080',
       storeId,
     });
